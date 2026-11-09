@@ -50,6 +50,18 @@ check('表格保留', /<td>单元格<\/td>/.test(html));
 check('两张图都拿到 src', imgs.length === 2, String(imgs.length));
 check('data-src 被提成真 src', imgs.some((i) => i.getAttribute('src').includes('b.jpg')));
 
+/* ---------- 字体归一 ---------- */
+const { root: r2 } = parseBody(
+  '<p style="font-family:SimSun;font-size:12px;color:#c00;line-height:2">正文</p><h2 style="font-size:22px;font-family:serif">标题</h2>',
+);
+sanitizeBody(r2);
+const h2 = toHtml(r2);
+check('font-family 被剥掉', !/font-family/i.test(h2));
+check('line-height 被剥掉', !/line-height/i.test(h2));
+check('过小的 font-size 交给正文', !/font-size:\s*12px/.test(h2));
+check('合理的 font-size 保留', /font-size:\s*22px/.test(h2));
+check('颜色意图保留', /color:#c00/.test(h2));
+
 const firstImg = root.querySelector('img');
 check('图片上的事件属性被清掉', !!firstImg && !firstImg.getAttribute('onerror'));
 

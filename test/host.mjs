@@ -123,6 +123,14 @@ check('路径逃逸被拒', bad.status >= 400, String(bad.status));
 const notFound = await call('GET', '/readlater/api/nope');
 check('未知路由 404', notFound.status === 404);
 
+/* ---------- 标签 ---------- */
+const t1 = await call('POST', '/readlater/api/tags', { slug, tags: [' 设计 ', '排版', '排版', ''] });
+const t1b = JSON.parse(t1.body.toString());
+check('/tags 保存成功', t1.status === 200 && t1b.ok === true, String(t1.status));
+check('/tags 去空白与去重', JSON.stringify(t1b.record.tags) === JSON.stringify(['设计', '排版']), JSON.stringify(t1b.record.tags));
+const t2 = await call('POST', '/readlater/api/tags', { slug, tags: [] });
+check('/tags 可以清空', JSON.parse(t2.body.toString()).record.tags.length === 0);
+
 const added = await call('POST', '/readlater/api/add', { text: '这段文字里没有链接' });
 const addedBody = JSON.parse(added.body.toString());
 check('无链接时报错清楚', added.status === 400 && /没有链接/.test(addedBody.error), addedBody.error);
