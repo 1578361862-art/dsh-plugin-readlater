@@ -31,6 +31,7 @@
     "lib/sanitize.js",
     "lib/xhs.js",
     "lib/wechat.js",
+    "lib/project.js",
     "lib/render.js",
     "lib/store.js",
     "cordis.patch.yml",
@@ -51,6 +52,8 @@
     }
   },
   "dependencies": {
-    "linkedom": "^0.18.15"
+    "linkedom": "^0.18.15",
+    "turndown": "^7.2.5",
+    "turndown-plugin-gfm": "^1.0.2"
   }
 }

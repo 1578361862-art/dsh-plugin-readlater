@@ -41,6 +41,25 @@ http://xhslink.com/a/AbCdEf，复制本条信息，打开【小红书】App查�
 
 所以归一化层里 `xsec_token` 是白名单保留项，不会被"清理跟踪参数"顺手删掉。
 
+## 投影到 Obsidian
+
+投影是**手动**的：解析完先留在本地，你想留下哪篇再点「同步到 Obsidian」。
+
+```
+90.同步/ReadLater/
+  阅读索引.md                  ← managed 头 + 全部条目的 wikilink
+  <标题>--<id8>.md             ← 一篇一个文件
+  assets/<id8>/img-01.webp     ← 正文图片，按条目分目录
+```
+
+- 每个文件头都写 `managed_by: "readlater"` / `managed: true`，和 `90.同步/BookTutor` 同一套约定：**这块目录是生成的，不要手改**。
+- 文件名带 `--<id8>` 后缀（id 的 8 位哈希）：标题会改，id 不会。投影先按 id 找旧文件再改写，改标题不会在 vault 里留下两个条目。
+- **写进笔记的原文链接是规范化后的干净地址**：分享链里的 `xsec_token` 是一次性凭证，抓取时必须有，落进 vault 就是泄露。
+- `contentHash` 在解析时算一次，`projectedHash` 在投影时记一次；两者不等就在面板上标「有更新」。
+- 长文（微信）走 turndown 转 Markdown；图文（小红书）直接「文案 + 图片序列」，本来就没有文章结构，硬转反而难看。
+
+vault 路径按 环境变量 `READLATER_VAULT` > `~/Data/readlater/config.json` 的 `vault` > 默认 iCloud 路径 解析。
+
 ## 数据在哪
 
 ```
@@ -103,6 +122,7 @@ node test/local.mjs          # 小红书夹具：归一化 + 渲染，不联网
 node test/host.mjs           # 假 ctx 起宿主：路由、路径改写、MIME、越权、错误分支
 node test/sanitize.mjs       # 清洗器：脚本/事件属性/javascript:/iframe 全部拦住
 node test/wechat-offline.mjs # 公众号：article 与 gallery 两条分支，含图片失败降级
+node test/project.mjs        # 投影：版面、幂等、改标题不留旧文件、撤销、HTML→MD
 node test/panel.mjs          # 面板静态渲染，产出 .tmp/readlater-preview/panel.html
 ```
 
@@ -116,4 +136,4 @@ node test/panel.mjs          # 面板静态渲染，产出 .tmp/readlater-previe
 | 微信公众号 | HTTP 优先 → 撞 verify 壳则浏览器渲染 → `#js_content` + `data-src` | ✅ 已通（连续请求会被限流） |
 | 抖音 | 短链 → `iesdouyin` 的 `_ROUTER_DATA` | 待接 |
 | 知乎 | 必须带 cookie 的浏览器（纯 HTTP 403） | 待接 |
-| Obsidian 投影 | 手动触发，`cp -R` + 生成 md | 待做 |
+| Obsidian 投影 | 手动触发，按 id 匹配改写 + 图片随行 | ✅ 已通 |
