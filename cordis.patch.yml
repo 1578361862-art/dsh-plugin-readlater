@@ -1,0 +1,5 @@
+# 稍后阅读：本地解析 + 图文卡片（宿主 /readlater/api 路由 + 客户端面板）
+# 作为 dsh.bundle 的 patch 层，安装后由 launcher 自动应用。
+- insert:
+    - id: readlater
+      name: "dsh-plugin-readlater"
