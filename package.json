@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-readlater",
   "version": "0.1.0",
-  "description": "稍后阅读：粘贴分享链接，本地解析成图文/视频卡片，图片视频一并缓存，按需投影到 Obsidian。",
+  "description": "Read-later for DSH: paste a share link, parse it locally into a cached article card, and project it to Obsidian on demand. 稍后阅读：本地解析、缓存图文，按需投影到 Obsidian。",
   "license": "MIT",
   "author": "Yee",
   "type": "module",
@@ -23,27 +23,23 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "README.md",
+    "lib",
     "cordis.patch.yml",
-    "lib/browser.js",
-    "lib/client.js",
-    "lib/index.js",
-    "lib/ingest.js",
-    "lib/media.js",
-    "lib/normalize.js",
-    "lib/project.js",
-    "lib/render.js",
-    "lib/sanitize.js",
-    "lib/store.js",
-    "lib/throttle.js",
-    "lib/wechat.js",
-    "lib/xhs.js",
-    "scripts/import-inread.mjs",
-    "scripts/rerender.mjs"
+    "README.md",
+    "LICENSE",
+    "docs"
   ],
   "engines": {
     "node": ">=20",
     "dsh": ">=0.2.1-rc.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1578361862-art/dsh-plugin-readlater.git"
+  },
+  "homepage": "https://github.com/1578361862-art/dsh-plugin-readlater#readme",
+  "bugs": {
+    "url": "https://github.com/1578361862-art/dsh-plugin-readlater/issues"
   },
   "dsh": {
     "manifestVersion": 1,
