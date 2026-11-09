@@ -61,7 +61,12 @@ http://xhslink.com/a/AbCdEf，复制本条信息，打开【小红书】App查�
 
 ## 阅读排版
 
-正文按中文长文的基线调过：**17.5px / 行高 1.86 / 字距 +.012em / measure 33rem**，标题用俪宋并 `text-wrap: balance`。
+整页**只用一套衬线家族**（俪宋 LiSong Pro），标题和正文靠字号分层次——这是杂志的做法，不是"标题一种字体、正文另一种"。
+
+正文基线：**18px / 行高 1.9 / 字距 +.02em / measure 32rem**；标题 1.76em 并 `text-wrap: balance`。
+
+> 改排版模板**不会自动更新旧文章**：阅读页是渲染时把 CSS 一起写进 `content.html` 的。
+> 改完样式跑 `node scripts/rerender.mjs` 重渲染一遍（只读本地，不联网、不碰 Obsidian）。
 
 站点原文（微信）的 inline style 会做一次**排版归一**（`lib/sanitize.js`）：
 

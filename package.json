@@ -38,7 +38,8 @@
     "lib/throttle.js",
     "lib/wechat.js",
     "lib/xhs.js",
-    "scripts/import-inread.mjs"
+    "scripts/import-inread.mjs",
+    "scripts/rerender.mjs"
   ],
   "engines": {
     "node": ">=20",
