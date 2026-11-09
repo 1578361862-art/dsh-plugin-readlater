@@ -162,7 +162,8 @@ html,body{margin:0;height:100%;font-family:-apple-system,"PingFang SC",sans-seri
 body{background:#f7f5f1}
 ${css}
 /* 预览用：给个固定画布，模拟面板里的尺寸 */
-.rl-root{width:1080px;height:680px;border:1px solid #ddd;border-radius:10px;overflow:hidden;margin:24px auto}
+/* 宽度交给窗口，才能验 900 / 720 断点；上限只是模拟大屏 */
+.rl-root{width:100%;max-width:1080px;height:680px;border:1px solid #ddd;border-radius:10px;overflow:hidden;margin:16px auto}
 </style></head><body>${withLocal(render(tree))}</body></html>`;
 
 const outDir = path.resolve(repo, '../.tmp/readlater-preview');
