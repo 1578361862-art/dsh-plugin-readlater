@@ -55,13 +55,13 @@ const SEED = {
   items: [
     { slug: 'xhs-6aed25de000000000900f771', title: '两个颜色，把照片印成海报', author: '羔羊',
       saved: new Date(Date.now() - 3600e3).toISOString(), layout: 'gallery', platformLabel: '小红书',
-      mediaBytes: 4192680, projectedAt: null, thumb: 'img-01.webp' },
+      mediaBytes: 4192680, assetCount: 9, projectedAt: null, thumb: 'img-01.webp' },
     { slug: 'xhs-demo2', title: 'AI 生成的版式，为什么一眼假', author: '设计杂货铺',
       saved: new Date(Date.now() - 30 * 3600e3).toISOString(), layout: 'gallery', platformLabel: '小红书',
-      mediaBytes: 1820000, projectedAt: new Date().toISOString(), thumb: null },
+      mediaBytes: 1820000, assetCount: 6, projectedAt: new Date().toISOString(), thumb: null },
     { slug: 'xhs-demo3', title: '用一张网屏，把整面墙印成一张图', author: '半调研究所',
       saved: new Date(Date.now() - 5 * 86400e3).toISOString(), layout: 'video', platformLabel: '小红书',
-      mediaBytes: 22600000, projectedAt: null, thumb: null },
+      mediaBytes: 22600000, assetCount: 1, projectedAt: null, thumb: null },
   ],
 };
 

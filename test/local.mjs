@@ -84,6 +84,7 @@ const rec = {
   platformLabel: '小红书',
   url: realUrl,
   title: note.title,
+  desc: note.desc || '',
   author: note.user?.name || '',
   published: note.time ? new Date(Number(note.time)).toISOString() : null,
   saved: new Date().toISOString(),
