@@ -26,7 +26,11 @@
     "lib/index.js",
     "lib/client.js",
     "lib/normalize.js",
+    "lib/media.js",
+    "lib/browser.js",
+    "lib/sanitize.js",
     "lib/xhs.js",
+    "lib/wechat.js",
     "lib/render.js",
     "lib/store.js",
     "cordis.patch.yml",
@@ -45,5 +49,8 @@
       "inject": [],
       "platform": "web"
     }
+  },
+  "dependencies": {
+    "linkedom": "^0.18.15"
   }
 }

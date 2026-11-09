@@ -2,7 +2,7 @@
 
 粘贴一条分享链接 → 本地解析 → 图文卡片阅读。**不经过任何模型**，图片视频跟正文一起缓存，数据全在本地。
 
-当前只接了**小红书**。微信 / 知乎 / 抖音的适配器位置已经留好（见「路线」）。
+当前接了**小红书**和**微信公众号**。知乎 / 抖音的位置已经留好（见「路线」）。
 
 ## 用法
 
@@ -16,6 +16,23 @@
 56 【两个颜色，把照片印成海报】 😆 ...
 http://xhslink.com/a/AbCdEf，复制本条信息，打开【小红书】App查看精彩内容！
 ```
+
+## 为什么微信要过浏览器
+
+文档说公众号正文在服务端 HTML 里（`#js_content`），实际上（2026-11 实测）：
+**纯 HTTP 不管用桌面 UA 还是微信移动端 UA，拿到的都是同一个 17 KB 的
+`secitptpage/verify` JS 壳**，正文要等挑战脚本跑完才出现。
+
+所以微信走两级：先试 HTTP（快），拿不到 `#js_content` 就开无头 Chrome 渲染一遍。
+渲染那一步还有两条硬经验：
+
+1. **不要复用浏览器 profile。** 同一个 profile 访问几次微信，它会给
+   「环境异常，完成验证后即可继续访问」；一次性 profile 反而直接放行。
+2. **被 kill 的 Chrome 会留下死锁。** `SingletonLock` 是个指向
+   `<hostname>-<pid>` 的符号链接，进程没了链接还在，Chrome 会
+   "Aborting now to avoid profile corruption" 永久拒绝这个目录。
+   而且悬空链接用 `fs.existsSync` 判断会返回 false（它跟随链接）——
+   必须 `readlinkSync` 看本体，确认同机且 pid 已死就回收。
 
 ## 为什么必须走分享链接
 
@@ -82,8 +99,11 @@ http://xhslink.com/a/AbCdEf，复制本条信息，打开【小红书】App查�
 ## 自测
 
 ```bash
-node test/local.mjs   # 用 .tmp/xhs 里的真实笔记夹具验证归一化 + 渲染，不联网
-node test/host.mjs    # 假 ctx 起宿主，验路由、路径改写、MIME、越权与错误分支
+node test/local.mjs          # 小红书夹具：归一化 + 渲染，不联网
+node test/host.mjs           # 假 ctx 起宿主：路由、路径改写、MIME、越权、错误分支
+node test/sanitize.mjs       # 清洗器：脚本/事件属性/javascript:/iframe 全部拦住
+node test/wechat-offline.mjs # 公众号：article 与 gallery 两条分支，含图片失败降级
+node test/panel.mjs          # 面板静态渲染，产出 .tmp/readlater-preview/panel.html
 ```
 
 `local.mjs` 会顺手把一份预览写到 `.tmp/readlater-preview/<slug>/content.html`。
@@ -93,7 +113,7 @@ node test/host.mjs    # 假 ctx 起宿主，验路由、路径改写、MIME、�
 | 源 | 通道 | 状态 |
 |---|---|---|
 | 小红书 | 分享链 + 无头 Chrome 读 `__INITIAL_STATE__` | ✅ 已通 |
-| 微信公众号 | 移动端 UA + `#js_content` + `data-src` | 待接 |
+| 微信公众号 | HTTP 优先 → 撞 verify 壳则浏览器渲染 → `#js_content` + `data-src` | ✅ 已通（连续请求会被限流） |
 | 抖音 | 短链 → `iesdouyin` 的 `_ROUTER_DATA` | 待接 |
 | 知乎 | 必须带 cookie 的浏览器（纯 HTTP 403） | 待接 |
 | Obsidian 投影 | 手动触发，`cp -R` + 生成 md | 待做 |
