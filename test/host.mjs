@@ -20,7 +20,7 @@ const repo = path.resolve(here, '..');
 const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'readlater-test-'));
 process.env.READLATER_ROOT = tmpRoot;
 
-const { default: apply, PREFIX } = await import('../lib/index.js');
+const { apply, PREFIX } = await import('../lib/index.js');
 const { createStore, slugOf } = await import('../lib/store.js');
 const { renderNote } = await import('../lib/render.js');
 

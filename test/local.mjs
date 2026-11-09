@@ -11,6 +11,7 @@
  */
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pickUrl, platformOf, contentIdOf, toHttp } from '../lib/normalize.js';
@@ -20,9 +21,13 @@ import { slugOf } from '../lib/store.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '..');
-const fixture = process.env.XHS_FIXTURE
-  ? path.resolve(process.env.XHS_FIXTURE)
-  : path.resolve(repo, '../.tmp/xhs/6aed25de000000000900f771');
+const NOTE_ID = '6aed25de000000000900f771';
+const fixtureCandidates = [
+  process.env.XHS_FIXTURE,
+  path.resolve(repo, '../.tmp/xhs', NOTE_ID),                       // 在 DSH 工作区里跑
+  path.join(os.homedir(), 'Work/dsh/default-workspace/.tmp/xhs', NOTE_ID), // 迁到 ~/Code 之后
+].filter(Boolean);
+const fixture = fixtureCandidates.find((p) => fs.existsSync(path.join(p, 'note.json')));
 
 let failed = 0;
 const check = (label, ok, extra = '') => {
@@ -30,8 +35,8 @@ const check = (label, ok, extra = '') => {
   if (!ok) failed += 1;
 };
 
-if (!fs.existsSync(path.join(fixture, 'note.json'))) {
-  console.error(`找不到夹具：${fixture}`);
+if (!fixture) {
+  console.error(`找不到夹具，试过：\n  ${fixtureCandidates.join('\n  ')}`);
   process.exit(2);
 }
 
