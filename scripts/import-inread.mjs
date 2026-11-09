@@ -43,25 +43,69 @@ const outDir = path.join(store.root, 'import');
 fs.mkdirSync(outDir, { recursive: true });
 const resultFile = path.join(outDir, `inread-${stamp}.jsonl`);
 
-// 续跑：已经出过结果的 URL 直接跳过
-const seen = new Set();
+/**
+ * 续跑历史。
+ *
+ * 关键：**失败不能当成"已处理"**。被风控的那几分钟里刷出来的失败，
+ * 如果也标成已处理，这批链接就永久废掉了 —— 这正是第一版踩的坑。
+ * 所以按 url 聚合：成功的跳过，失败的最多重试 2 次。
+ */
+const history = new Map();
 if (fs.existsSync(resultFile)) {
   for (const line of fs.readFileSync(resultFile, 'utf8').split('\n')) {
     if (!line.trim()) continue;
     try {
       const r = JSON.parse(line);
-      if (r.url) seen.add(r.url);
+      if (!r.url) continue;
+      const cur = history.get(r.url) || { ok: false, fails: 0, lastReason: '' };
+      if (r.status === 'ok' || r.status === 'duplicate' || r.status === 'skipped') cur.ok = true;
+      if (r.status === 'failed') {
+        cur.fails += 1;
+        cur.lastReason = r.reason || '';
+      }
+      history.set(r.url, cur);
     } catch {
       /* 半截行忽略 */
     }
   }
 }
+const MAX_ATTEMPTS = 2;
+const shouldSkip = (url) => {
+  const h = history.get(url);
+  if (!h) return false;
+  return h.ok || h.fails >= MAX_ATTEMPTS;
+};
 
 const throttle = createThrottle({ file: path.join(store.root, 'state', 'throttle.json') });
-const ing = createIngest({ store, throttle });
+// 小红书要慢得多：实测连续 ~30 条就会被踢回发现页
+const throttleXhs = createThrottle({
+  file: path.join(store.root, 'state', 'throttle-xhs.json'),
+  minGapMs: Number(opt('--gap', '6000')),
+  baseMs: 10 * 60 * 1000,
+  capMs: 60 * 60 * 1000,
+});
+const ing = createIngest({ store, throttle, throttleXhs });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const append = (obj) => fs.appendFileSync(resultFile, JSON.stringify(obj) + '\n');
+
+if (flag('--status')) {
+  let ok = 0;
+  let bad = 0;
+  let skip = 0;
+  for (const [, h] of history) {
+    if (h.ok) ok += 1;
+    else if (h.fails >= MAX_ATTEMPTS) bad += 1;
+    else skip += 1;
+  }
+  const total = rows.length;
+  console.log(`清单 ${total} 条`);
+  console.log(`  已导入/已跳过 ${ok}`);
+  console.log(`  重试未达上限 ${skip}`);
+  console.log(`  已放弃（失败 ${MAX_ATTEMPTS} 次）${bad}`);
+  console.log(`  结果文件 ${resultFile}`);
+  process.exit(0);
+}
 
 const counts = { ok: 0, duplicate: 0, failed: 0, skipped: 0, seen: 0 };
 // 只有"被墙"才熔断；老笔记 token 过期是内容问题，连续十条也正常
@@ -75,7 +119,7 @@ for (const row of rows) {
   if (LIMIT && processed >= LIMIT) break;
   const url = String(row.u || '').trim();
   if (!url) continue;
-  if (seen.has(url)) {
+  if (shouldSkip(url)) {
     counts.seen += 1;
     continue;
   }
@@ -114,8 +158,13 @@ for (const row of rows) {
       console.log(`✓ ${(res.record?.title || '').slice(0, 34)} | ${(res.record?.assets || []).length} 项素材`);
     }
   } catch (err) {
+    if (err?.cooling) {
+      console.log(`\n⏸ ${err.message}`);
+      console.log('   已处理的不重复；过一段时间重跑同一条命令即可续跑。');
+      break;
+    }
     counts.failed += 1;
-    wallStreak = err?.cooling || err?.throttled ? wallStreak + 1 : 0;
+    wallStreak = err?.throttled ? wallStreak + 1 : 0;
     const reason = String(err?.message || err);
     failReasons.set(reason.slice(0, 40), (failReasons.get(reason.slice(0, 40)) || 0) + 1);
     append({ url, at: new Date().toISOString(), status: 'failed', reason });

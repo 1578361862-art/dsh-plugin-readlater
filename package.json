@@ -23,20 +23,22 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lib/index.js",
-    "lib/client.js",
-    "lib/normalize.js",
-    "lib/media.js",
+    "README.md",
+    "cordis.patch.yml",
     "lib/browser.js",
-    "lib/sanitize.js",
-    "lib/xhs.js",
-    "lib/wechat.js",
-    "lib/throttle.js",
+    "lib/client.js",
+    "lib/index.js",
+    "lib/ingest.js",
+    "lib/media.js",
+    "lib/normalize.js",
     "lib/project.js",
     "lib/render.js",
+    "lib/sanitize.js",
     "lib/store.js",
-    "cordis.patch.yml",
-    "README.md"
+    "lib/throttle.js",
+    "lib/wechat.js",
+    "lib/xhs.js",
+    "scripts/import-inread.mjs"
   ],
   "engines": {
     "node": ">=20",
