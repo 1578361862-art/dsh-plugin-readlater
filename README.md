@@ -10,6 +10,11 @@
 2. 把小红书的分享链接——或者整段分享文案——粘进输入框，回车
 3. 解析完成后左边出卡片，右边直接读
 
+列表支持**搜索**（标题 / 作者 / 站点 / 正文摘要 / 标签，纯本地）和**筛选**（全部 · 未读 · 已同步 · 有更新）。
+点「批量」进入多选：勾几篇 → 「同步 N 篇」一次投影；也可以「全选」当前筛选结果。
+
+输入框右侧的「缓存视频」是全局开关（记在 localStorage）：默认只存直链和封面，勾上才会把视频下到本地。
+
 分享文案原样粘贴即可，不需要自己挑 URL：
 
 ```
@@ -123,6 +128,7 @@ node test/host.mjs           # 假 ctx 起宿主：路由、路径改写、MIME�
 node test/sanitize.mjs       # 清洗器：脚本/事件属性/javascript:/iframe 全部拦住
 node test/wechat-offline.mjs # 公众号：article 与 gallery 两条分支，含图片失败降级
 node test/project.mjs        # 投影：版面、幂等、改标题不留旧文件、撤销、HTML→MD
+node test/filter.mjs         # 面板搜索/筛选纯函数：关键词命中面、三档筛选、叠加
 node test/panel.mjs          # 面板静态渲染，产出 .tmp/readlater-preview/panel.html
 ```
 

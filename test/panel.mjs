@@ -29,6 +29,9 @@ const Mini = {
     const i = Mini.__hookIndex = (Mini.__hookIndex || 0) + 1;
     if (SEED && i === 1) return [SEED.items, () => {}];
     if (SEED && i === 2) return [SEED.active, () => {}];
+    // 5 = selectMode, 6 = selected：只有批量视图预览才注入
+    if (SEED && i === 5 && SEED.selectMode) return [true, () => {}];
+    if (SEED && i === 6 && SEED.selected) return [new Set(SEED.selected), () => {}];
     const v = typeof init === 'function' ? init() : init;
     return [v, () => {}];
   },
@@ -50,8 +53,11 @@ const previewRoot = path.resolve(repo, '../.tmp/readlater-preview');
 const fixtureDir = path.join(process.env.HOME, 'Work/dsh/default-workspace/.tmp/xhs/6aed25de000000000900f771');
 const fixtureHas = fs.existsSync(path.join(fixtureDir, 'note.json'));
 
+const BATCH = process.env.PREVIEW === 'select';
 const SEED = {
   active: 'xhs-6aed25de000000000900f771',
+  selectMode: BATCH,
+  selected: BATCH ? ['xhs-6aed25de000000000900f771', 'xhs-demo2'] : undefined,
   items: [
     { slug: 'xhs-6aed25de000000000900f771', title: '两个颜色，把照片印成海报', author: '羔羊',
       saved: new Date(Date.now() - 3600e3).toISOString(), layout: 'gallery', platformLabel: '小红书',
@@ -168,6 +174,7 @@ ${css}
 
 const outDir = path.resolve(repo, '../.tmp/readlater-preview');
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(path.join(outDir, 'panel.html'), html, 'utf8');
-console.log(`面板预览：${outDir}/panel.html`);
+const name = BATCH ? 'panel-select.html' : 'panel.html';
+fs.writeFileSync(path.join(outDir, name), html, 'utf8');
+console.log(`面板预览：${outDir}/${name}`);
 console.log(`节点数：${(html.match(/<[a-z]+/g) || []).length}`);
