@@ -32,6 +32,8 @@ const Mini = {
     // 5 = selectMode, 6 = selected：只有批量视图预览才注入
     if (SEED && i === 5 && SEED.selectMode) return [true, () => {}];
     if (SEED && i === 6 && SEED.selected) return [new Set(SEED.selected), () => {}];
+    if (SEED && i === 13 && SEED.editing) return [SEED.editing, () => {}];   // editing
+    if (SEED && i === 14 && SEED.draft) return [SEED.draft, () => {}];       // draft
     const v = typeof init === 'function' ? init() : init;
     return [v, () => {}];
   },
@@ -53,10 +55,25 @@ const previewRoot = path.resolve(repo, '../.tmp/readlater-preview');
 const fixtureDir = path.join(process.env.HOME, 'Work/dsh/default-workspace/.tmp/xhs/6aed25de000000000900f771');
 const fixtureHas = fs.existsSync(path.join(fixtureDir, 'note.json'));
 
-const BATCH = process.env.PREVIEW === 'select';
+const MODE = process.env.PREVIEW || 'read';
+const BATCH = MODE === 'select';
+const EDIT = MODE === 'edit';
 const SEED = {
   active: 'xhs-6aed25de000000000900f771',
   selectMode: BATCH,
+  editing: EDIT ? 'xhs-6aed25de000000000900f771' : null,
+  draft: EDIT
+    ? {
+        title: '两个颜色，把照片印成海报',
+        blocks: [
+          { type: 'p', text: '把一张彩色风景照，压成只有纸和墨两个颜色，反而比原来更耐看。' },
+          { type: 'p', text: '这期讲的是半调网屏：照片不再靠千万种颜色过渡，而是靠一张固定网格上的小圆点说话。' },
+          { type: 'img', file: 'img-01.webp' },
+          { type: 'img', file: 'img-02.webp' },
+          { type: 'h', text: '四张对比图' },
+        ],
+      }
+    : null,
   selected: BATCH ? ['xhs-6aed25de000000000900f771', 'xhs-demo2'] : undefined,
   items: [
     { slug: 'xhs-6aed25de000000000900f771', title: '两个颜色，把照片印成海报', author: '羔羊',
@@ -150,6 +167,13 @@ function render(node) {
     attrs.push(`${k}="${esc(v)}"`);
   }
   const a = attrs.length ? ' ' + attrs.join(' ') : '';
+  if (type === 'textarea') {
+    // textarea 的值是子节点，不是属性；预览要把它渲染进去才看得见
+    const text = props.value === undefined || props.value === null ? '' : props.value;
+    const withoutValue = attrs.filter((x) => !x.startsWith('value='));
+    const aa = withoutValue.length ? ' ' + withoutValue.join(' ') : '';
+    return `<textarea${aa}>${esc(text)}</textarea>`;
+  }
   if (type === 'input' || type === 'img' || type === 'br') return `<${type}${a}>`;
   return `<${type}${a}>${render(children)}</${type}>`;
 }
@@ -175,7 +199,7 @@ ${css}
 
 const outDir = path.resolve(repo, '../.tmp/readlater-preview');
 fs.mkdirSync(outDir, { recursive: true });
-const name = BATCH ? 'panel-select.html' : 'panel.html';
+const name = BATCH ? 'panel-select.html' : EDIT ? 'panel-edit.html' : 'panel.html';
 fs.writeFileSync(path.join(outDir, name), html, 'utf8');
 console.log(`面板预览：${outDir}/${name}`);
 console.log(`节点数：${(html.match(/<[a-z]+/g) || []).length}`);

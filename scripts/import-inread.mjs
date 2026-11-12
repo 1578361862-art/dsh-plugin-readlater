@@ -36,6 +36,8 @@ const rows = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const LIMIT = Number(opt('--limit', '0')) || 0;
 const DRY = flag('--dry-run');
 const SLEEP = Number(opt('--sleep', '1200'));
+// 只处理指定平台：风控期间先把不受影响的（公众号）收掉
+const ONLY = String(opt('--platform', '')).split(',').map((x) => x.trim()).filter(Boolean);
 
 const store = createStore();
 const stamp = new Date().toISOString().slice(0, 10);
@@ -59,7 +61,7 @@ if (fs.existsSync(resultFile)) {
       if (!r.url) continue;
       const cur = history.get(r.url) || { ok: false, fails: 0, lastReason: '' };
       if (r.status === 'ok' || r.status === 'duplicate' || r.status === 'skipped') cur.ok = true;
-      if (r.status === 'failed') {
+      if (r.status === 'failed' && !r.transient) {
         cur.fails += 1;
         cur.lastReason = r.reason || '';
       }
@@ -76,7 +78,8 @@ const shouldSkip = (url) => {
   return h.ok || h.fails >= MAX_ATTEMPTS;
 };
 
-const throttle = createThrottle({ file: path.join(store.root, 'state', 'throttle.json') });
+// 导入是批量的：间隔等待可以长一点，别把"才过 11 秒"当成中止信号
+const throttle = createThrottle({ file: path.join(store.root, 'state', 'throttle.json'), maxWaitMs: 30000 });
 // 小红书要慢得多：实测连续 ~30 条就会被踢回发现页
 const throttleXhs = createThrottle({
   file: path.join(store.root, 'state', 'throttle-xhs.json'),
@@ -107,7 +110,7 @@ if (flag('--status')) {
   process.exit(0);
 }
 
-const counts = { ok: 0, duplicate: 0, failed: 0, skipped: 0, seen: 0 };
+const counts = { ok: 0, duplicate: 0, failed: 0, skipped: 0, seen: 0, filtered: 0 };
 // 只有"被墙"才熔断；老笔记 token 过期是内容问题，连续十条也正常
 let wallStreak = 0;
 const MAX_WALL_STREAK = 6;
@@ -130,6 +133,11 @@ for (const row of rows) {
     counts.skipped += 1;
     append({ url, at: new Date().toISOString(), status: 'skipped', reason: norm.error });
     console.log(`⋯ 跳过 ${norm.error} | ${url.slice(0, 54)}`);
+    continue;
+  }
+  if (ONLY.length && !ONLY.includes(norm.platform)) {
+    // 只是"本轮不处理"，不能落盘：落盘就等于把它标成已处理，以后永远不会再试
+    counts.filtered = (counts.filtered || 0) + 1;
     continue;
   }
   if (!SUPPORTED.includes(norm.platform)) {
@@ -163,11 +171,14 @@ for (const row of rows) {
       console.log('   已处理的不重复；过一段时间重跑同一条命令即可续跑。');
       break;
     }
-    counts.failed += 1;
-    wallStreak = err?.throttled ? wallStreak + 1 : 0;
     const reason = String(err?.message || err);
+    // 撞墙、CDP 超时这类是环境问题，不该消耗这条链接的重试次数
+    const transient = /登录\/验证|冷却|CDP|超时/.test(reason);
+    if (!transient) counts.failed += 1;
+    else counts.transient = (counts.transient || 0) + 1;
+    wallStreak = transient ? wallStreak + 1 : 0;
     failReasons.set(reason.slice(0, 40), (failReasons.get(reason.slice(0, 40)) || 0) + 1);
-    append({ url, at: new Date().toISOString(), status: 'failed', reason });
+    append({ url, at: new Date().toISOString(), status: 'failed', reason, transient });
     console.log(`✗ ${reason.slice(0, 50)} | ${url.slice(0, 46)}`);
     if (wallStreak >= MAX_WALL_STREAK) {
       console.log(`\n连续 ${wallStreak} 条被判定为拦截页，先停。过一会儿重跑同一条命令即可续跑（已处理的不重复）。`);
@@ -180,7 +191,7 @@ for (const row of rows) {
 
 const mins = ((Date.now() - t0) / 60000).toFixed(1);
 console.log('\n──────── 汇总 ────────');
-console.log(`处理 ${processed} 条 · 成功 ${counts.ok} · 已存在 ${counts.duplicate} · 失败 ${counts.failed} · 跳过 ${counts.skipped} · 之前已处理 ${counts.seen}`);
+console.log(`处理 ${processed} 条 · 过滤 ${counts.filtered || 0} · 成功 ${counts.ok} · 已存在 ${counts.duplicate} · 失败 ${counts.failed} · 跳过 ${counts.skipped} · 之前已处理 ${counts.seen}`);
 console.log(`耗时 ${mins} 分钟 · 结果追加在 ${resultFile}`);
 if (failReasons.size) {
   console.log('失败原因：');

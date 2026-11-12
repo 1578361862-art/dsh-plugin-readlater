@@ -25,6 +25,7 @@
   "files": [
     "README.md",
     "cordis.patch.yml",
+    "lib/blocks.js",
     "lib/browser.js",
     "lib/client.js",
     "lib/index.js",

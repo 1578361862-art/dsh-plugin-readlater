@@ -131,6 +131,29 @@ check('/tags 去空白与去重', JSON.stringify(t1b.record.tags) === JSON.strin
 const t2 = await call('POST', '/readlater/api/tags', { slug, tags: [] });
 check('/tags 可以清空', JSON.parse(t2.body.toString()).record.tags.length === 0);
 
+/* ---------- 内容块编辑 ---------- */
+const b1 = await call('GET', `/readlater/api/blocks?slug=${slug}`);
+const b1b = JSON.parse(b1.body.toString());
+check('/blocks 能派生出块', b1.status === 200 && Array.isArray(b1b.blocks) && b1b.blocks.length > 0, String(b1b.blocks?.length));
+
+const b2 = await call('POST', '/readlater/api/blocks', {
+  slug,
+  title: '改过的标题',
+  blocks: [{ type: 'p', text: '第一段改过了' }, { type: 'img', file: 'img-01.webp' }],
+});
+const b2b = JSON.parse(b2.body.toString());
+check('/blocks 保存成功', b2.status === 200 && b2b.ok === true);
+check('保存后标记 edited', b2b.record?.edited === true);
+check('保存后标题更新', b2b.record?.title === '改过的标题', b2b.record?.title);
+
+const view2 = await call('GET', `/readlater/api/view/${slug}`);
+const html2 = view2.body.toString();
+check('阅读页用上了改后的文本', html2.includes('第一段改过了'));
+check('原有文本被替换', !html2.includes('这是测试摘要'));
+
+const b3 = await call('POST', '/readlater/api/blocks/reset', { slug });
+check('还原后 blocks 清空', b3.status === 200 && !JSON.parse(b3.body.toString()).record.blocks);
+
 const added = await call('POST', '/readlater/api/add', { text: '这段文字里没有链接' });
 const addedBody = JSON.parse(added.body.toString());
 check('无链接时报错清楚', added.status === 400 && /没有链接/.test(addedBody.error), addedBody.error);
