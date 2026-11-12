@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>稍后阅读 · 版面稿 v2</title>
+<style>
+/* ───────────────── 令牌：日/夜两套，跟随设计规范 ───────────────── */
+:root{
+  --paper:#faf6ee; --card:#fffcf6; --paper-2:#f1eadc; --paper-3:#f5eee2;
+  --ink:#1b1813; --ink-soft:#4b453a; --ink-faint:#7f7666;
+  --line:rgba(27,24,19,.14); --rule:rgba(27,24,19,.62);
+  --signal:#a8452f;
+  --serif:"LiSong Pro","Apple LiSung","Songti SC",Georgia,serif;
+  --ui:-apple-system,"SF Pro Text","PingFang SC",sans-serif;
+  --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,monospace;
+  --ctl:34px; --ctl-sm:26px; --r:8px; --r-card:12px;
+  --fast:.15s; --ease:cubic-bezier(.2,.8,.2,1);
+}
+[data-theme=dark]{
+  --paper:#151517; --card:#232324; --paper-2:#1b1c1e; --paper-3:#2c2c2e;
+  --ink:#f9fafb; --ink-soft:#cfd3d6; --ink-faint:#9aa0a8;
+  --line:rgba(255,255,255,.07); --rule:rgba(255,255,255,.12);
+  --signal:#ff6363;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:#0f0f11; color:var(--ink-soft); font-family:var(--ui);
+  -webkit-font-smoothing:antialiased; padding:34px;
+  display:flex; justify-content:center; align-items:flex-start; gap:0;
+}
+[data-theme=light] body{background:#e8e4dc}
+
+/* ───────────────── 外框：模拟 DSH 窗口 ───────────────── */
+.window{
+  width:1440px; height:900px; background:var(--paper); color:var(--ink-soft);
+  border-radius:14px; overflow:hidden; display:flex;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.35);
+}
+
+/* 侧栏只是占位，标出面板在窗口里的位置 */
+.rail{
+  width:232px; flex:none; background:var(--paper-2); border-right:1px solid var(--line);
+  padding:14px 10px; display:flex; flex-direction:column; gap:2px;
+}
+.rail .brand{display:flex; align-items:center; gap:7px; padding:4px 8px 14px; font-size:11px; letter-spacing:.16em; color:var(--ink-faint)}
+.rail .brand i{width:6px; height:6px; background:var(--signal); transform:rotate(45deg)}
+.rail .row{display:flex; align-items:center; gap:10px; height:32px; padding:0 10px; border-radius:6px; font-size:12.5px; color:var(--ink-faint)}
+.rail .row.on{background:var(--paper-3); color:var(--ink)}
+.rail .gap{height:10px}
+.rail .cap{padding:8px 10px 4px; font-size:11px; letter-spacing:.14em; color:var(--ink-faint)}
+
+/* ───────────────── 面板 ───────────────── */
+.panel{flex:1; min-width:0; display:flex; flex-direction:column}
+
+/* 刊头：两行。标题 + 右侧单行元信息 */
+.head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:24px;
+  padding:26px 28px 16px; border-bottom:1px solid var(--rule);
+}
+.title{
+  margin:0; font-family:var(--serif); font-weight:500; font-size:34px;
+  line-height:1.1; letter-spacing:-.018em; color:var(--ink);
+}
+.headmeta{
+  flex:none; font-family:var(--mono); font-size:11px; letter-spacing:.03em;
+  color:var(--ink-faint); text-align:right; line-height:1.7;
+}
+.headmeta b{color:var(--ink-soft); font-weight:500}
+
+/* 收件口：一行。提示只在有话说时出现在同一行右侧 */
+.paste{
+  display:flex; align-items:center; gap:8px; padding:12px 28px 0;
+}
+.paste input{
+  flex:1; min-width:0; height:var(--ctl); padding:0 12px;
+  border:1px solid var(--line); border-radius:var(--r);
+  background:var(--card); color:var(--ink); font:inherit; font-size:12.5px; outline:none;
+  transition:border-color var(--fast) var(--ease);
+}
+.paste input::placeholder{color:var(--ink-faint)}
+.paste input:focus{border-color:var(--signal); box-shadow:0 0 0 3px color-mix(in srgb,var(--signal) 15%,transparent)}
+.paste .go{
+  height:var(--ctl); padding:0 16px; border-radius:var(--r); border:1px solid var(--ink);
+  background:var(--ink); color:var(--paper); font:inherit; font-size:12.5px; font-weight:500;
+  cursor:pointer; transition:transform var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.paste .go:hover{background:var(--ink-soft); border-color:var(--ink-soft)}
+.paste .go:active{transform:translateY(1px)}
+.check{display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-faint); cursor:pointer; white-space:nowrap}
+.check input{accent-color:var(--ink); width:13px; height:13px; margin:0}
+
+/* 状态行：只在有信息时占位，高度恒定避免跳动 */
+.status{
+  height:26px; display:flex; align-items:center; gap:10px;
+  padding:6px 28px 0; font-size:12px; color:var(--ink-faint);
+}
+.status .dot{width:5px;height:5px;border-radius:50%;background:var(--signal);flex:none}
+.status .x{margin-left:auto; border:0; background:transparent; color:var(--ink-faint); cursor:pointer; font:inherit; font-size:11.5px}
+.status .x:hover{color:var(--ink)}
+
+/* 任务指示器 */
+.headright{display:flex; align-items:center; gap:14px; flex:none}
+.jobs{
+  display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 10px;
+  border:1px solid var(--line); border-radius:999px; background:var(--card);
+  color:var(--ink-soft); font:inherit; font-size:11.5px; cursor:pointer;
+  transition:background var(--fast) var(--ease);
+}
+.jobs:hover{background:var(--paper-3)}
+.jobs[aria-expanded=true]{background:var(--paper-3); border-color:var(--ink-faint)}
+.jobs svg{animation:spin 2.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.jobpop{
+  position:absolute; top:76px; right:26px; z-index:5; width:308px;
+  background:var(--card); border:1px solid var(--line); border-radius:var(--r-card);
+  box-shadow:0 12px 28px -12px rgba(0,0,0,.45); padding:12px 14px;
+}
+.jobpop[hidden]{display:none}
+.jp-title{margin:0 0 8px; font-size:11.5px; color:var(--ink-faint)}
+.jp-title span{color:var(--ink); font-weight:500}
+.jobpop ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px}
+.jobpop li{display:flex; gap:9px; align-items:flex-start}
+.jobpop li div{min-width:0}
+.jobpop b{display:block; font-size:12px; font-weight:500; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.jobpop li span{font-size:11px; color:var(--ink-faint)}
+.jobpop i{width:10px; height:10px; margin-top:4px; flex:none; border-radius:50%; border:1.5px solid var(--line); border-top-color:var(--signal)}
+.spin{animation:spin .9s linear infinite}
+.jobpop li i.wait{border-color:var(--line); background:var(--paper-3)}
+.jp-foot{margin:10px 0 0; padding-top:9px; border-top:1px solid var(--line); font-size:11px; color:var(--ink-faint)}
+
+/* 完成提示：只出现一次，4 秒后自己走 */
+.toast{
+  position:absolute; right:26px; bottom:24px; z-index:6; max-width:420px;
+  display:flex; flex-direction:column; gap:3px; padding:11px 14px;
+  background:var(--ink); color:var(--paper); border-radius:10px;
+  box-shadow:0 14px 30px -14px rgba(0,0,0,.6);
+  opacity:0; transform:translateY(8px); transition:opacity .2s var(--ease), transform .2s var(--ease);
+}
+.toast.show{opacity:1; transform:none}
+.toast span{font-size:11px; opacity:.72}
+.toast b{font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+/* 主体：列表 + 阅读区 */
+.body{flex:1; min-height:0; display:flex; border-top:1px solid var(--line); margin-top:10px}
+
+/* 列表 */
+.list{width:322px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--line)}
+.tools{display:flex; gap:6px; padding:10px 12px 8px}
+.tools input{
+  flex:1; min-width:0; height:var(--ctl-sm); padding:0 10px; border:1px solid var(--line);
+  border-radius:var(--r); background:var(--card); color:var(--ink); font:inherit; font-size:11.5px; outline:none;
+}
+.tools input::placeholder{color:var(--ink-faint)}
+.tools .t{height:var(--ctl-sm); padding:0 10px; border:1px solid var(--line); border-radius:var(--r);
+  background:transparent; color:var(--ink-faint); font:inherit; font-size:11.5px; cursor:pointer}
+.tools .t:hover{background:var(--paper-3); color:var(--ink)}
+
+.filters{display:flex; gap:4px; padding:0 12px 10px}
+.selbar{display:flex; align-items:center; gap:6px; padding:0 12px 10px}
+.selbar[hidden]{display:none}
+.selbar .all{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-soft); cursor:pointer; white-space:nowrap}
+.selbar .all input{width:14px; height:14px; margin:0; accent-color:var(--ink)}
+.selbar b{color:var(--ink); font-weight:500}
+.selbar .grow{flex:1}
+.act.danger:hover{color:var(--signal)}
+.act.ghost{border-color:transparent; background:transparent}
+.chip{height:24px; padding:0 10px; border:1px solid transparent; border-radius:999px;
+  background:transparent; color:var(--ink-faint); font:inherit; font-size:11px; cursor:pointer;
+  transition:background var(--fast) var(--ease), color var(--fast) var(--ease)}
+.chip:hover{background:var(--paper-3); color:var(--ink-soft)}
+.chip.on{background:var(--paper-3); border-color:var(--line); color:var(--ink)}
+
+.scroll{flex:1; min-height:0; overflow-y:auto; padding:0 8px 10px}
+.scroll::-webkit-scrollbar{width:8px}
+.scroll::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px; border:2px solid transparent; background-clip:content-box}
+.scroll::-webkit-scrollbar-track{background:transparent}
+
+.pick{display:flex; align-items:center; flex:none; opacity:0; transition:opacity var(--fast) var(--ease)}
+.item:hover .pick, .item.on .pick, .item.sel .pick{opacity:1}
+.pick input{width:14px; height:14px; margin:0; accent-color:var(--ink); cursor:pointer}
+.item.sel{background:var(--paper-3)}
+.item{display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border-radius:var(--r); cursor:pointer;
+  transition:background var(--fast) var(--ease)}
+.item:hover{background:var(--paper-3)}
+.item.on{background:var(--paper-3)}
+.thumb{width:54px; height:54px; flex:none; border-radius:6px; object-fit:cover; background:var(--paper-2)}
+.thumb.ph{display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:15px}
+.item .m{min-width:0; flex:1; padding-top:1px}
+.item .it{margin:0 0 4px; font-size:12.5px; font-weight:500; line-height:1.45; color:var(--ink);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.item p{margin:0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  font-size:11px; color:var(--ink-faint); letter-spacing:.01em}
+.tag{font-family:var(--mono); font-size:11px; padding:0 7px; line-height:17px;
+  border-radius:999px; border:1px solid var(--line); color:var(--ink-faint)}
+.tag.ok{border-color:transparent; background:var(--paper-2)}
+
+/* 阅读区 */
+.read{flex:1; min-width:0; display:flex; flex-direction:column; background:var(--paper-2); padding:12px 14px 14px; gap:10px}
+.readhead{display:flex; align-items:center; gap:8px; flex:none}
+.readtitle{flex:1; min-width:0; font-size:12px; color:var(--ink-faint);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.act{height:var(--ctl-sm); padding:0 11px; border:1px solid var(--line); border-radius:var(--r);
+  background:var(--card); color:var(--ink-soft); font:inherit; font-size:11.5px; cursor:pointer;
+  white-space:nowrap; transition:background var(--fast) var(--ease), color var(--fast) var(--ease)}
+.act:hover{background:var(--paper-3); color:var(--ink)}
+.act.primary{border-color:var(--ink); background:var(--ink); color:var(--paper)}
+.act.primary:hover{background:var(--ink-soft)}
+.act.icon{width:var(--ctl-sm); padding:0; display:inline-flex; align-items:center; justify-content:center}
+
+/* 标签只在有标签时占位 */
+.tagbar{display:flex; align-items:center; gap:6px; flex:none}
+.tagbar .pill{display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 9px;
+  border-radius:999px; background:var(--card); border:1px solid var(--line);
+  font-size:11px; color:var(--ink-soft)}
+.tagbar .pill button{border:0;background:transparent;color:var(--ink-faint);cursor:pointer;font-size:12px;line-height:1;padding:0}
+.tagbar .add{height:22px; padding:0 9px; border:1px dashed var(--line); border-radius:999px;
+  background:transparent; color:var(--ink-faint); font:inherit; font-size:11px; cursor:pointer}
+.tagbar .add:hover{border-color:var(--ink-faint); color:var(--ink-soft)}
+
+/* 纸面 */
+.paper{
+  flex:1; min-height:0; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--r-card); overflow:hidden; display:flex;
+}
+.paper .page{flex:1; overflow-y:auto; padding:34px 44px 44px}
+.paper .page::-webkit-scrollbar{width:8px}
+.paper .page::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px; border:2px solid transparent; background-clip:content-box}
+
+.kicker{display:flex; align-items:center; gap:7px; margin:0 0 12px;
+  font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--ink-faint)}
+.kicker i{width:5px;height:5px;background:var(--signal);transform:rotate(45deg);flex:none}
+.page .ttl{margin:0; font-family:var(--serif); font-weight:500; font-size:clamp(22px,1.1rem + .9vw,30px);
+  line-height:1.26; letter-spacing:-.008em; color:var(--ink); text-wrap:balance}
+.page .meta{margin:10px 0 0; font-family:var(--mono); font-size:11px; color:var(--ink-faint)}
+.page hr{border:0; border-top:1px solid var(--rule); opacity:.5; margin:16px 0 22px}
+.page p{margin:0 0 .92em; font-family:var(--serif); font-size:16px; line-height:1.9; letter-spacing:.02em; color:var(--body-ink, var(--ink-soft))}
+.page h2:not(.ttl){margin:1.7em 0 .6em; font-family:var(--serif); font-weight:500; font-size:19px; color:var(--ink)}
+
+/* 键盘焦点：统一 */
+:focus-visible{outline:2px solid var(--signal); outline-offset:2px; border-radius:4px}
+
+/* 主题开关 */
+.toggle{position:fixed; top:18px; right:18px; z-index:9; height:32px; padding:0 14px;
+  border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.4);
+  color:#f9fafb; font:inherit; font-size:12px; cursor:pointer; backdrop-filter:blur(8px)}
+</style>
+</head>
+<body>
+<button class="toggle" id="tg" aria-label="切换日夜">切换夜间 / 日间</button>
+
+<div class="window">
+  <aside class="rail" aria-hidden="true">
+    <div class="brand"><i></i>DEEPSEEK HARNESS</div>
+    <div class="row on">＋ 新会话</div>
+    <div class="gap"></div>
+    <div class="row">◈ 插件</div>
+    <div class="cap">YEE</div>
+    <div class="row">▤ Daily Report</div>
+    <div class="row">◎ GitHub 雷达</div>
+    <div class="row">▤ Book Tutor</div>
+    <div class="row">◔ 影子盘</div>
+    <div class="row on">▤ 稍后阅读</div>
+  </aside>
+
+  <main class="panel">
+    <header class="head">
+      <h1 class="title">稍后阅读</h1>
+      <div class="headright">
+        <button class="jobs" id="jobs" aria-expanded="false" aria-controls="jobpop">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4" stroke-dasharray="26 12" stroke-linecap="round"/>
+          </svg>
+          <span>2</span>
+        </button>
+        <div class="headmeta"><b>21 篇</b> · 21.6 MB<br>~/Data/readlater</div>
+      </div>
+      <div class="jobpop" id="jobpop" hidden>
+        <p class="jp-title">正在处理 <span>2 项</span></p>
+        <ul>
+          <li><i class="spin"></i><div><b>用 Codex 优化网速狂飙 900Mbps…</b><span>缓存图片 12/21</span></div></li>
+          <li><i class="wait"></i><div><b>Magepie 订阅共享思路…</b><span>排队中</span></div></li>
+        </ul>
+        <p class="jp-foot">完成后会自动提示，不需要等在这里。</p>
+      </div>
+    </header>
+
+    <div class="paste">
+      <input placeholder="粘贴链接或整段分享文案，回车收藏" aria-label="粘贴链接">
+      <button class="go">收藏</button>
+      <label class="check"><input type="checkbox" checked> 缓存视频</label>
+    </div>
+
+
+    <div class="body">
+      <section class="list" aria-label="收藏列表">
+        <div class="tools">
+          <input placeholder="搜标题、作者、正文…" aria-label="搜索">
+        </div>
+        <div class="filters" id="filters">
+          <button class="chip on">全部</button>
+          <button class="chip">未读</button>
+          <button class="chip">已同步</button>
+          <button class="chip">有更新</button>
+        </div>
+        <div class="selbar" id="selbar" hidden>
+          <label class="all"><input type="checkbox" id="all" checked> 已选 <b>2</b></label>
+          <span class="grow"></span>
+          <button class="act">同步</button>
+          <button class="act danger">删除</button>
+          <button class="act ghost" id="clear">取消</button>
+        </div>
+        <div class="scroll">
+          <article class="item on" tabindex="0">
+            <span class="pick"><input type="checkbox" checked aria-label="选择"></span>
+            <img class="thumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='54'%3E%3Crect width='54' height='54' fill='%23444'/%3E%3C/svg%3E" alt="">
+            <div class="m">
+              <p class="it">用 Codex 优化网速狂飙 900Mbps？实测之后我发现了新的隐藏玩法</p>
+              <p><span>3 天前</span><span>发现明日产品的</span><span class="tag ok">已同步</span></p>
+            </div>
+          </article>
+          <article class="item" tabindex="0">
+            <span class="pick"><input type="checkbox" checked aria-label="选择"></span>
+            <img class="thumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='54'%3E%3Crect width='54' height='54' fill='%23555'/%3E%3C/svg%3E" alt="">
+            <div class="m">
+              <p class="it">Magepie 订阅共享思路，理论上可长期白嫖多家供应商模型！</p>
+              <p><span>3 天前</span><span>小飓童学</span></p>
+            </div>
+          </article>
+          <article class="item" tabindex="0">
+            <span class="pick"><input type="checkbox" aria-label="选择"></span>
+            <div class="thumb ph">◍</div>
+            <div class="m">
+              <p class="it">我的 AI 设计工作流已经离不开 Lovart</p>
+              <p><span>3 天前</span><span>阿慕</span><span class="tag">公众号</span></p>
+            </div>
+          </article>
+          <article class="item" tabindex="0">
+            <span class="pick"><input type="checkbox" aria-label="选择"></span>
+            <div class="thumb ph">▶</div>
+            <div class="m">
+              <p class="it">PixiJS 火了：HTML-in-Canvas 真的落地了！</p>
+              <p><span>3 天前</span><span>Vue 中文社区</span><span class="tag">视频</span></p>
+            </div>
+          </article>
+          <article class="item" tabindex="0">
+            <span class="pick"><input type="checkbox" checked aria-label="选择"></span>
+            <img class="thumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='54'%3E%3Crect width='54' height='54' fill='%234c4c4c'/%3E%3C/svg%3E" alt="" style="background:#a8452f">
+            <div class="m">
+              <p class="it">3 个实测好用的图文 skill ！</p>
+              <p><span>3 天前</span><span>阿松（AI 版）</span></p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="read" aria-label="阅读">
+        <div class="readhead">
+          <span class="readtitle">微信公众号 · 6.0 MB · 21 张图</span>
+          <button class="act primary">编辑</button>
+          <button class="act">同步到 Obsidian</button>
+          <button class="act icon" aria-label="更多操作">⋯</button>
+        </div>
+        <div class="tagbar">
+          <span class="pill">#网速优化 <button aria-label="移除">×</button></span>
+          <span class="pill">#Codex <button aria-label="移除">×</button></span>
+          <button class="add">+ 标签</button>
+        </div>
+        <div class="paper">
+          <div class="page">
+            <p class="kicker"><i></i>微信公众号 / 发现明日产品的</p>
+            <h2 class="ttl">用 Codex 优化网速狂飙 900Mbps？实测之后我发现了新的隐藏玩法</h2>
+            <p class="meta">2026-05-25</p>
+            <hr>
+            <p>昨天，Codex 再一次重置了额度，我们的账号从剩余 10% 又回到了剩余 87%。</p>
+            <p>Codex 负责人 Tibo 在 X 发文，有些用户注意到 Codex 中的缓存限制消耗得更快，我们发现根本原因是之前的实现里，缓存命中判定的粒度过粗。</p>
+            <h2>先说结论</h2>
+            <p>把请求按会话切分之后，命中率从 42% 提到了 78%，同样的任务成本下降了一半。做法并不复杂，难的是它和你原本的直觉相反。</p>
+            <p>下面是我这周实测的完整记录，包括失败的那几次。</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div class="toast" id="toast">
+    <span>已保存到 Obsidian</span>
+    <b>用 Codex 优化网速狂飙 900Mbps…--3f7a1c2b.md</b>
+  </div>
+</div>
+
+<script>
+  // 任务指示器：点开/收起
+  const jobs = document.getElementById('jobs');
+  const pop = document.getElementById('jobpop');
+  jobs.addEventListener('click', () => {
+    const open = jobs.getAttribute('aria-expanded') === 'true';
+    jobs.setAttribute('aria-expanded', String(!open));
+    pop.hidden = open;
+  });
+
+  // 选中态：勾选任意一行 → 顶部换成操作条
+  const selbar = document.getElementById('selbar');
+  const filters = document.getElementById('filters');
+  const picks = [...document.querySelectorAll('.item .pick input')];
+  const sync = () => {
+    const n = picks.filter((p) => p.checked).length;
+    const any = n > 0;
+    selbar.hidden = !any;
+    filters.hidden = any;
+    picks.forEach((p) => p.closest('.item').classList.toggle('sel', p.checked));
+    const b = selbar.querySelector('b');
+    if (b) b.textContent = String(n);
+  };
+  picks.forEach((p) => p.addEventListener('change', sync));
+  document.getElementById('all').addEventListener('change', (e) => {
+    picks.forEach((p) => { p.checked = e.target.checked; });
+    sync();
+  });
+  document.getElementById('clear').addEventListener('click', () => {
+    picks.forEach((p) => { p.checked = false; });
+    sync();
+  });
+  sync();
+
+  // 完成提示：模拟一次任务结束
+  setTimeout(() => document.getElementById('toast').classList.add('show'), 900);
+
+  const root = document.documentElement;
+  document.getElementById('tg').addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  });
+</script>
+</body>
+</html>

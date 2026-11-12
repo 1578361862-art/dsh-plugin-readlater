@@ -27,13 +27,17 @@ const Mini = {
   },
   useState(init) {
     const i = Mini.__hookIndex = (Mini.__hookIndex || 0) + 1;
+    // Main 的 hook 顺序：1 items · 2 active · 5 selected · 12 jobs · 13 jobStats
+    //                   16 editing · 17 draft。改了 Main 的 useState 顺序要同步这里。
     if (SEED && i === 1) return [SEED.items, () => {}];
     if (SEED && i === 2) return [SEED.active, () => {}];
-    // 5 = selectMode, 6 = selected：只有批量视图预览才注入
-    if (SEED && i === 5 && SEED.selectMode) return [true, () => {}];
-    if (SEED && i === 6 && SEED.selected) return [new Set(SEED.selected), () => {}];
-    if (SEED && i === 13 && SEED.editing) return [SEED.editing, () => {}];   // editing
-    if (SEED && i === 14 && SEED.draft) return [SEED.draft, () => {}];       // draft
+    if (SEED && i === 5 && SEED.selected) return [new Set(SEED.selected), () => {}];
+    if (SEED && i === 12 && SEED.jobs) return [SEED.jobs, () => {}];
+    if (SEED && i === 13 && SEED.jobStats) return [SEED.jobStats, () => {}];
+    if (SEED && i === 14 && SEED.openJobs) return [true, () => {}];
+    if (SEED && i === 15 && SEED.toast) return [SEED.toast, () => {}];
+    if (SEED && i === 16 && SEED.editing) return [SEED.editing, () => {}];
+    if (SEED && i === 17 && SEED.draft) return [SEED.draft, () => {}];
     const v = typeof init === 'function' ? init() : init;
     return [v, () => {}];
   },
@@ -60,7 +64,13 @@ const BATCH = MODE === 'select';
 const EDIT = MODE === 'edit';
 const SEED = {
   active: 'xhs-6aed25de000000000900f771',
-  selectMode: BATCH,
+  jobs: [
+    { id: 'j1', label: '用 Codex 优化网速狂飙 900Mbps…', status: 'running', step: '缓存图片 12/21' },
+    { id: 'j2', label: 'Magepie 订阅共享思路…', status: 'queued', step: '排队中' },
+  ],
+  jobStats: { running: 1, queued: 1, done: 0 },
+  openJobs: MODE === 'jobs',
+  toast: MODE === 'toast' ? { title: '已收藏 · 用 Codex 优化网速狂飙 900Mbps…' } : null,
   editing: EDIT ? 'xhs-6aed25de000000000900f771' : null,
   draft: EDIT
     ? {
@@ -199,7 +209,7 @@ ${css}
 
 const outDir = path.resolve(repo, '../.tmp/readlater-preview');
 fs.mkdirSync(outDir, { recursive: true });
-const name = BATCH ? 'panel-select.html' : EDIT ? 'panel-edit.html' : 'panel.html';
+const name = `panel-${MODE}.html`;
 fs.writeFileSync(path.join(outDir, name), html, 'utf8');
 console.log(`面板预览：${outDir}/${name}`);
 console.log(`节点数：${(html.match(/<[a-z]+/g) || []).length}`);
