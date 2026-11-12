@@ -35,6 +35,7 @@
     "lib/project.js",
     "lib/render.js",
     "lib/sanitize.js",
+    "lib/settings.js",
     "lib/store.js",
     "lib/throttle.js",
     "lib/wechat.js",

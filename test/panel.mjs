@@ -39,6 +39,8 @@ const Mini = {
     if (SEED && i === 16 && SEED.editing) return [SEED.editing, () => {}];
     if (SEED && i === 17 && SEED.draft) return [SEED.draft, () => {}];
     if (SEED && i === 22 && SEED.selMode) return [true, () => {}];
+    if (SEED && i === 23 && SEED.settings) return [SEED.settings, () => {}];
+    if (SEED && i === 24 && SEED.openSettings) return [true, () => {}];
     const v = typeof init === 'function' ? init() : init;
     return [v, () => {}];
   },
@@ -72,6 +74,15 @@ const SEED = {
   jobStats: { running: 1, queued: 1, done: 0 },
   openJobs: MODE === 'jobs',
   selMode: BATCH || MODE === 'sel',
+  settings: {
+    video: true,
+    vault: '/Users/yee/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obs_Yee',
+    vaultIsDefault: true,
+    vaultDetected: '/Users/yee/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obs_Yee',
+    subdir: '90.同步/ReadLater',
+    dataDir: '/Users/yee/Data/readlater',
+  },
+  openSettings: MODE === 'settings',
   toast: MODE === 'toast' ? { title: '已收藏 · 用 Codex 优化网速狂飙 900Mbps…' } : null,
   editing: EDIT ? 'xhs-6aed25de000000000900f771' : null,
   draft: EDIT

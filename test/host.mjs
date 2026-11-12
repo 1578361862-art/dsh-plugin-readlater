@@ -141,6 +141,26 @@ check(
 const t2 = await call('POST', '/readlater/api/tags', { slug, tags: [] });
 check('/tags 可以清空', JSON.parse(t2.body.toString()).record.tags.length === 0);
 
+/* ---------- 设置 ---------- */
+const st1 = JSON.parse((await call('GET', '/readlater/api/settings')).body.toString());
+check('/settings 有默认值', st1.ok && st1.settings.video === true && !!st1.settings.dataDir, JSON.stringify(st1.settings?.video));
+check('/settings 带投影子目录', st1.settings.subdir === '90.同步/ReadLater', st1.settings.subdir);
+
+const st2 = JSON.parse((await call('POST', '/readlater/api/settings', { video: false })).body.toString());
+check('/settings 能关掉视频', st2.ok && st2.settings.video === false);
+
+const st3 = JSON.parse((await call('POST', '/readlater/api/settings', { vault: '/tmp/fake-vault' })).body.toString());
+check('/settings 能改 vault', st3.ok && st3.settings.vault === '/tmp/fake-vault');
+
+const st4 = await call('POST', '/readlater/api/settings', { vault: 'relative/path' });
+check('vault 相对路径被拒', st4.status === 400);
+
+const st5 = JSON.parse((await call('POST', '/readlater/api/settings', { vault: '' })).body.toString());
+check('清空 vault 回到自动探测', st5.ok && st5.settings.vaultIsDefault === true);
+
+const op = await call('POST', '/readlater/api/open', { which: 'nope-dir' });
+check('打开不存在的目录被拒', op.status === 400);
+
 /* ---------- 内容块编辑 ---------- */
 const b1 = await call('GET', `/readlater/api/blocks?slug=${slug}`);
 const b1b = JSON.parse(b1.body.toString());
