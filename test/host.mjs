@@ -128,6 +128,16 @@ const t1 = await call('POST', '/readlater/api/tags', { slug, tags: [' 设计 ', 
 const t1b = JSON.parse(t1.body.toString());
 check('/tags 保存成功', t1.status === 200 && t1b.ok === true, String(t1.status));
 check('/tags 去空白与去重', JSON.stringify(t1b.record.tags) === JSON.stringify(['设计', '排版']), JSON.stringify(t1b.record.tags));
+const tb = await call('POST', '/readlater/api/tags-batch', { slugs: [slug], add: ['合集', '合集 ', ' 阅读'] });
+const tbb = JSON.parse(tb.body.toString());
+check('/tags-batch 成功', tb.status === 200 && tbb.changed === 1, String(tbb.changed));
+const after = JSON.parse((await call('GET', `/readlater/api/item?slug=${slug}`)).body.toString()).record;
+check(
+  '/tags-batch 去重且合并',
+  JSON.stringify(after.tags) === JSON.stringify(['设计', '排版', '合集', '阅读']),
+  JSON.stringify(after.tags),
+);
+
 const t2 = await call('POST', '/readlater/api/tags', { slug, tags: [] });
 check('/tags 可以清空', JSON.parse(t2.body.toString()).record.tags.length === 0);
 
