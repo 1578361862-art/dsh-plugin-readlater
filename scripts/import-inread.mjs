@@ -83,13 +83,15 @@ const shouldSkip = (url) => {
 };
 
 // 导入是批量的：间隔等待可以长一点，别把"才过 11 秒"当成中止信号
-const throttle = createThrottle({ file: path.join(store.root, 'state', 'throttle.json'), maxWaitMs: 30000 });
+const throttle = createThrottle({ file: path.join(store.root, 'state', 'throttle.json'), label: '微信', maxWaitMs: 30000 });
 // 小红书要慢得多：实测连续 ~30 条就会被踢回发现页
 const throttleXhs = createThrottle({
   file: path.join(store.root, 'state', 'throttle-xhs.json'),
+  label: '小红书',
   minGapMs: Number(opt('--gap', '6000')),
-  baseMs: 10 * 60 * 1000,
-  capMs: 60 * 60 * 1000,
+  // 拦截是间歇性的：冷却短一点、多试几轮，比一次冻一小时划算
+  baseMs: 5 * 60 * 1000,
+  capMs: 30 * 60 * 1000,
 });
 const ing = createIngest({ store, throttle, throttleXhs });
 
