@@ -42,6 +42,41 @@ check('长文识别引用', ab.some((b) => b.type === 'quote' && b.text === '引
 check('长文识别图片', ab.some((b) => b.type === 'img' && b.file === 'img-01.webp'));
 check('表格被压平成段落', ab.some((b) => b.type === 'p' && b.text.includes('表格')));
 
+/* ---------- 短行合并 ---------- */
+const m1 = deriveBlocks(
+  { layout: 'article', desc: '', assets: [] },
+  '<section>很短的一行</section><section>接着的内容。</section>',
+);
+check('短行并成一段', m1.length === 1 && m1[0].text === '很短的一行接着的内容。', JSON.stringify(m1.map((b) => b.text)));
+
+const m2 = deriveBlocks(
+  { layout: 'article', desc: '', assets: [] },
+  '<section>一句还没说完，</section><section>这里接着说。</section>',
+);
+check('逗号结尾续写', m2.length === 1 && m2[0].text.endsWith('这里接着说。'), JSON.stringify(m2.map((b) => b.text)));
+
+const m3 = deriveBlocks(
+  { layout: 'article', desc: '', assets: [] },
+  '<section>一句完整的话</section><section>。</section>',
+);
+check('孤立标点并回上一段', m3.length === 1 && m3[0].text === '一句完整的话。', JSON.stringify(m3.map((b) => b.text)));
+
+const m4 = deriveBlocks(
+  { layout: 'article', desc: '', assets: [] },
+  '<p><span style="font-size: 30px">大标题</span></p><section>正文第一句。</section>',
+);
+check('大字识别为小标题', m4[0]?.type === 'h' && m4[0].text === '大标题', JSON.stringify(m4));
+
+const m5 = deriveBlocks(
+  { layout: 'article', desc: '', assets: [] },
+  '<p>一段</p><img src="assets/a.webp"><p>二段</p>',
+);
+check(
+  '图片挪到末尾',
+  m5[m5.length - 1].type === 'img' && m5[0].type === 'p' && m5[0].text.includes('一段'),
+  JSON.stringify(m5.map((b) => b.type)),
+);
+
 /* ---------- 渲染 ---------- */
 const html = blocksToHtml([
   { type: 'p', text: '带 <script> 的文字' },
