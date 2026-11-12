@@ -53,8 +53,12 @@ const resultFile = path.join(outDir, `inread-${stamp}.jsonl`);
  * 所以按 url 聚合：成功的跳过，失败的最多重试 2 次。
  */
 const history = new Map();
-if (fs.existsSync(resultFile)) {
-  for (const line of fs.readFileSync(resultFile, 'utf8').split('\n')) {
+// 结果文件按日期分，但历史必须读**全部**——只看当天等于每天从零开始
+const histFiles = fs.existsSync(outDir)
+  ? fs.readdirSync(outDir).filter((f) => /^inread-.*\.jsonl$/.test(f)).sort()
+  : [];
+for (const hf of histFiles) {
+  for (const line of fs.readFileSync(path.join(outDir, hf), 'utf8').split('\n')) {
     if (!line.trim()) continue;
     try {
       const r = JSON.parse(line);
