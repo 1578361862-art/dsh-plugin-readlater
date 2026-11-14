@@ -1,19 +1,36 @@
-# 稍后阅读（dsh-plugin-readlater）
+# 稍后阅读 · dsh-plugin-readlater
 
-粘贴一条分享链接 → 本地解析 → 图文卡片阅读。**不经过任何模型**，图片视频跟正文一起缓存，数据全在本地。
+> 粘一条分享链接，正文和图片落到本地。读的时候不联网，也不经过任何模型。
 
-当前接了**小红书**和**微信公众号**。知乎 / 抖音的位置已经留好（见「路线」）。
+![DSH](https://img.shields.io/badge/DSH-%E2%89%A5%200.2.1--rc.5-4f46e5?style=flat-square)
+![Node](https://img.shields.io/badge/node-%E2%89%A5%2020-339933?style=flat-square?logo=nodedotjs)
+![License](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)
+
+小红书的图文、微信公众号的长文，分享链接粘进去就在本机解析：正文抽成干净 HTML，图片视频一并缓存，左栏出卡片、右边直接读。没有账号，没有云端，没有模型调用。
+
+想留下来的那一篇，点「同步到 Obsidian」投影成笔记——正文、图片、标签、索引一起过去。
+
+## 安装
+
+```sh
+dsh plugin --profile <profile> add https://github.com/1578361862-art/dsh-plugin-readlater/releases/latest/download/dsh-plugin-readlater.tgz
+```
+
+`<profile>` 换成你实际的 profile 名：DSH Desktop 是 `desktop`，`dsh web` 一般是 `web`。装完重启 DSH。
+
+也可以从仓库源码装（本插件没有构建步骤）：
+
+```sh
+dsh plugin --profile <profile> add github:1578361862-art/dsh-plugin-readlater
+```
+
+**需要一对东西**：Node ≥ 20，以及一个可用的 Chrome（微信公众号的正文要渲染一次）。默认找 `/Applications/Google Chrome.app`，没有的话用 `READLATER_CHROME` 指一个可执行文件。
 
 ## 用法
 
 1. 左侧栏点「稍后阅读」
-2. 把小红书的分享链接——或者整段分享文案——粘进输入框，回车
-3. 解析完成后左边出卡片，右边直接读
-
-列表支持**搜索**（标题 / 作者 / 站点 / 正文摘要 / 标签，纯本地）和**筛选**（全部 · 未读 · 已同步 · 有更新）。
-点「批量」进入多选：勾几篇 → 「同步 N 篇」一次投影；也可以「全选」当前筛选结果。
-
-输入框右侧的「缓存视频」是全局开关（记在 localStorage）：默认只存直链和封面，勾上才会把视频下到本地。
+2. 把分享链接——或者整段分享文案——粘进输入框，回车
+3. 解析完左边出卡片，右边直接读
 
 分享文案原样粘贴即可，不需要自己挑 URL：
 
@@ -22,32 +39,18 @@
 http://xhslink.com/a/AbCdEf，复制本条信息，打开【小红书】App查看精彩内容！
 ```
 
-## 为什么微信要过浏览器
+列表支持**搜索**（标题 / 作者 / 站点 / 正文摘要 / 标签，纯本地）和**筛选**（全部 · 未读 · 已同步 · 有更新）。点「批量」进多选：勾几篇 → 「同步 N 篇」一次投影，也可以「全选」当前筛选结果。
 
-文档说公众号正文在服务端 HTML 里（`#js_content`），实际上（2026-11 实测）：
-**纯 HTTP 不管用桌面 UA 还是微信移动端 UA，拿到的都是同一个 17 KB 的
-`secitptpage/verify` JS 壳**，正文要等挑战脚本跑完才出现。
+输入框右侧的「缓存视频」是全局开关：默认只存直链和封面，勾上才会把视频下到本地。
 
-所以微信走两级：先试 HTTP（快），拿不到 `#js_content` 就开无头 Chrome 渲染一遍。
-渲染那一步还有两条硬经验：
+## 支持哪些源
 
-1. **不要复用浏览器 profile。** 同一个 profile 访问几次微信，它会给
-   「环境异常，完成验证后即可继续访问」；一次性 profile 反而直接放行。
-2. **被 kill 的 Chrome 会留下死锁。** `SingletonLock` 是个指向
-   `<hostname>-<pid>` 的符号链接，进程没了链接还在，Chrome 会
-   "Aborting now to avoid profile corruption" 永久拒绝这个目录。
-   而且悬空链接用 `fs.existsSync` 判断会返回 false（它跟随链接）——
-   必须 `readlinkSync` 看本体，确认同机且 pid 已死就回收。
-
-## 微信的限流刹车
-
-微信撞一次验证会越撞越久，所以这里不是"失败重试三次"，而是三件更保守的事（`lib/throttle.js`）：
-
-| 机制 | 值 | 目的 |
+| 源 | 通道 | 状态 |
 |---|---|---|
-| 请求间隔 | 15 秒 | 压住触发概率；间隔内再来会等一小会儿或直接拒绝 |
-| 指数冷却 | 撞一次 2 分钟，之后 4 / 8 … 上限 30 分钟 | 冷却期内**不再发请求** |
-| 快速失败 | 冷却中直接报"还剩几分几秒" | 避免把封锁撞深 |
+| 小红书 | 分享链 + 无头 Chrome 读 `__INITIAL_STATE__` | ✅ 已通 |
+| 微信公众号 | HTTP 优先 → 撞 verify 壳则浏览器渲染 → `#js_content` | ✅ 已通（连续请求会被限流） |
+| 抖音 | 短链 → `iesdouyin` 的 `_ROUTER_DATA` | 待接 |
+| 知乎 | 必须带 cookie 的浏览器（纯 HTTP 403） | 待接 |
 
 冷却状态落在 `~/Data/readlater/state/throttle.json`，重启不清零；成功抓取后自动清零。
 `GET /readlater/api/state` 会带 `throttle` 字段，面板在提示条上显示"微信冷却中 · 还剩 …"。
@@ -174,7 +177,7 @@ vault 路径按 环境变量 `READLATER_VAULT` > `~/Data/readlater/config.json` 
 
 ## 数据在哪
 
-```
+```text
 ~/Data/readlater/
   library/<platform>-<id>/
     meta.json       记录、标签、资源清单
@@ -183,91 +186,53 @@ vault 路径按 环境变量 `READLATER_VAULT` > `~/Data/readlater/config.json` 
   profile/          无头 Chrome 的持久 profile
 ```
 
-没有数据库：几百篇的量 `readdir` 足够。将来要全文检索再上 SQLite 索引，那是**派生**物，删了能重建。
+没有数据库：几百篇的量 `readdir` 足够。`content.html` 里用相对路径，整个目录可以原样搬走。存储根可以用 `READLATER_ROOT` 改。
 
-`content.html` 里用的是相对路径（`assets/img-01.webp`），所以整个目录可以原样搬走；
-将来同步到 Obsidian 就是 `cp -R`，不需要改写正文。
+## 投影到 Obsidian
 
-## 视觉
+投影是**手动**的：解析完先留在本地，想留哪篇再点「同步」。
 
-跟随 `~/Code/dsh-panel-kit` 的《自建面板设计规范》：同纸、同墨、同信号色、同刊头。
-
-| 层 | 日版 | 夜版 |
-|---|---|---|
-| 纸 | `#faf6ee` | `var(--dsw-alias-bg-base, #151517)`（跟随宿主） |
-| 卡片（阅读页、输入框、iframe） | `#fffcf6` | `#232324` |
-| 第二纸（图版占位、阅读区底） | `#f1eadc` | `#1b1c1e` |
-| 第三纸（悬停、选中） | `#f5eee2` | `#2c2c2e` |
-| 墨（主 / 次 / 弱） | `#1b1813` / `#4b453a` / `#7f7666` | `#f9fafb` / `#cfd3d6` / `#81858c` |
-| 发丝线 / 署名线 | `.14` / `.62` | `.06` / `.12` |
-| 信号色（唯一点缀） | `#a8452f` | `#ff6363` |
-
-**主题切换点**：`@media (prefers-color-scheme: dark)`。阅读页（iframe 内）与面板各自独立跟随系统；
-宿主若以后提供主题属性，两处一起换成同一选择器即可。
-
-**控制件几何**：`--pk-*` 拷贝自 `panel-kit/panel-kit.css`，用 `@panel-kit:begin/end` 标出边界。
-`panel-kit/check.mjs` 目前还没把这块面板登记进 `panels.json`，所以 `--fix` 不会覆盖它；
-登记之后记得同步。
-
-排版上的几条取舍：
-
-- 一屏只有一个实心按钮（「收藏」），其余都是描边或安静按钮。
-- 列表里不标「本地」——那是默认状态，标出来只是噪音；只标「视频」和「已同步」。
-- 阅读页标题用衬线（`Iowan Old Style / Songti SC`），正文用系统 UI 字体 17px/1.78，measure 34rem；
-  标题下方一条署名线，是这块面板的版面签名。
-- 图片整列竖排、圆角统一 8，与控件同一套圆角；首图不 lazy。
-
-## 设计上的几个决定
-
-| 决定 | 原因 |
-|---|---|
-| HTML 是阅读形态，Markdown 是投影形态 | 小红书这类「文案 + 九宫格」本来就没有文章结构，硬转 md 会丢排版 |
-| 图片按**字节**嗅探格式，不信扩展名 | `sns-webpic-qc.xhscdn.com` 的 URL 以 `.jpg` 结尾，返回的却是 WebP |
-| 正文字我们自己拼，不存站点 DOM | 没有 XSS 面，也就不需要 sanitizer |
-| 串行队列 | 一次只解析一条，风控风险低，进度可轮询 |
-| 首图不 lazy | 打开就出图，避免一屏灰块 |
-
-## 从别处搬收藏（InRead 导入）
-
-InRead 的库在 App Group 里：`~/Library/Group Containers/group.ideaappp.inread/InRead.sqlite`（Core Data）。
-先导出成清单，再跑导入：
-
-```bash
-sqlite3 -json ~/Library/Group\ Containers/group.ideaappp.inread/InRead.sqlite \
-  "SELECT ZTITLE t, ZURL u, ZSITENAME s FROM ZARTICLED WHERE ZISDELETE=0 AND ZURL<>'' ORDER BY ZCREATEDAT DESC;" \
-  > /tmp/inread-export/manifest.json
-
-node scripts/import-inread.mjs --manifest /tmp/inread-export/manifest.json --status   # 只看进度
-node scripts/import-inread.mjs --manifest /tmp/inread-export/manifest.json            # 跑（可中断、可续）
+```
+90.同步/ReadLater/
+  阅读索引.md                  ← managed 头 + 全部条目的 wikilink
+  <标题>--<id8>.md             ← 一篇一个文件
+  assets/<id8>/img-01.webp     ← 正文图片，按条目分目录
 ```
 
-导入器的三条约束（都是踩出来的）：
+文件里写 `managed_by: "readlater"` / `managed: true`，和 BookTutor 那套约定一致：这块目录是生成的，不要手改。标题会改、`<id8>` 不会，所以改标题不会在 vault 里留下两个条目。
 
-- **失败可重试**：成功的跳过，失败的按 url 计数，最多重试 2 次。第一版把失败也标成"已处理"，被风控那几分钟刷出来的失败就把链接永久废掉了。
-- **撞墙即停**：小红书连续读 ~30 条会把你踢回发现页（URL 变成 `/explore`、正文是"登录后推荐更懂你的笔记"）。这不是逐条失效，是一次性的 IP 级限制——这时立刻停、冷却 10 分钟，比继续撞强。
-- **不假装成功**：token 过期、笔记删除、被墙，三种原因分别落盘，不写半成品。
+vault 路径按 `READLATER_VAULT` > `~/Data/readlater/config.json` 的 `vault` > 默认 iCloud 路径 解析。
+
+## 卸载
+
+```sh
+dsh plugin --profile <profile> remove dsh-plugin-readlater
+```
+
+插件删掉，`~/Data/readlater` 里已经抓下来的东西还在；不想要就一起删。
+
+## 从别处搬收藏
+
+支持从 InRead（或任何能导出 JSON 清单的地方）批量导入，失败可重试、撞限流即停。见 [docs/IMPORT.md](docs/IMPORT.md)。
 
 ## 自测
 
 ```bash
-node test/local.mjs          # 小红书夹具：归一化 + 渲染，不联网
-node test/host.mjs           # 假 ctx 起宿主：路由、路径改写、MIME、越权、错误分支
-node test/sanitize.mjs       # 清洗器：脚本/事件属性/javascript:/iframe 全部拦住
-node test/wechat-offline.mjs # 公众号：article 与 gallery 两条分支，含图片失败降级
-node test/project.mjs        # 投影：版面、幂等、改标题不留旧文件、撤销、HTML→MD
-node test/filter.mjs         # 面板搜索/筛选纯函数：关键词命中面、三档筛选、叠加
-node test/throttle.mjs       # 限流刹车：间隔、指数冷却、跨实例落盘、可读时长
-node test/panel.mjs          # 面板静态渲染，产出 .tmp/readlater-preview/panel.html
+npm ci
+node test/local.mjs     # 小红书夹具：归一化 + 渲染，不联网
+node test/host.mjs      # 假 ctx 起宿主：路由、MIME、越权、错误分支
+node test/project.mjs   # 投影：版面、幂等、改标题不留旧文件、撤销
+node test/throttle.mjs  # 限流刹车：间隔、指数冷却、跨实例落盘
 ```
 
-`local.mjs` 会顺手把一份预览写到 `.tmp/readlater-preview/<slug>/content.html`。
+其余用例见 `test/`。
 
-## 路线
+## 实现
 
-| 源 | 通道 | 状态 |
-|---|---|---|
-| 小红书 | 分享链 + 无头 Chrome 读 `__INITIAL_STATE__` | ✅ 已通 |
-| 微信公众号 | HTTP 优先 → 撞 verify 壳则浏览器渲染 → `#js_content` + `data-src` | ✅ 已通（连续请求会被限流） |
-| 抖音 | 短链 → `iesdouyin` 的 `_ROUTER_DATA` | 待接 |
-| 知乎 | 必须带 cookie 的浏览器（纯 HTTP 403） | 待接 |
-| Obsidian 投影 | 手动触发，按 id 匹配改写 + 图片随行 | ✅ 已通 |
+抓取通道（微信为什么要过浏览器、限流怎么刹车）、投影与清理的取舍见 [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)；阅读页的排版与配色见 [docs/DESIGN.md](docs/DESIGN.md)。
+
+一句话：正文是我们自己拼的，不存站点 DOM，所以没有 XSS 面，也就不需要 sanitizer；图片按字节嗅探格式，不信扩展名。
+
+## 许可
+
+[MIT](LICENSE) © Yee
